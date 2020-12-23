@@ -63,18 +63,20 @@ jobs:
           path: |
             native/bin
             native-lib/bin
-  test_java7_linux:
+  test_java8_linux:
     if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: compress_native
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
       - uses: actions/download-artifact@v2
         with:
           name: compressed
       - uses: actions/setup-java@v1.4.3
         with:
-          java-version: 1.7
+          java-version: 1.8
       - run: |
           ./gradlew check
           ./gradlew run
@@ -89,6 +91,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
       - uses: actions/download-artifact@v2
         with:
           name: compressed
@@ -106,7 +110,7 @@ jobs:
   release:
     if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') && startsWith(github.ref, 'refs/heads/release-') }}
     needs: 
-        - test_java7_linux
+        - test_java8_linux
         - test_dotnet_linux
     runs-on: ubuntu-latest
     steps:
@@ -129,11 +133,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions/download-artifact@v2
-      with:
-        name: compressed
     - uses: actions/setup-java@v1.4.3
       with:
-        java-version: 1.7
+        java-version: 1.8
     - run: ./gradlew publish
       env:
         MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
