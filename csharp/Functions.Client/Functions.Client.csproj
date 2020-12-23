@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFrameworks>netcoreapp2.0;net40</TargetFrameworks>
+		<OutputType>Exe</OutputType>
+		<Platforms>AnyCPU</Platforms>
+		<StartupObject>Deltix.FunctionsDllClient</StartupObject>
+	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<ApplicationIcon />
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|netcoreapp2.0|AnyCPU'">
+	  <Prefer32Bit>false</Prefer32Bit>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|netcoreapp2.0|x86'">
+	  <Prefer32Bit>false</Prefer32Bit>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|netcoreapp2.0|x64'">
+	  <Prefer32Bit>false</Prefer32Bit>
+	</PropertyGroup>
+</Project>

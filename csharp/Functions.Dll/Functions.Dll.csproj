@@ -1,0 +1,64 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;netstandard1.3;netcoreapp1.0;net40</TargetFrameworks>
+		<LangVersion>6</LangVersion>
+		<RootNamespace>Functions</RootNamespace>
+		<Version>0.0.0</Version>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<VersionDashed>0-0-0</VersionDashed>
+		<OutputPath>bin\$(VersionDashed)\$(Configuration)\</OutputPath>
+		<AssemblyName>FunctionsDll</AssemblyName>
+		<RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
+	</PropertyGroup>
+	<ItemGroup>
+		<Compile Include="..\..\Zstandard\csharp\src\BitStream.cs" Link="ZStd\BitStream.cs" />
+		<Compile Include="..\..\Zstandard\csharp\src\blockType_e.cs" Link="ZStd\blockType_e.cs" />
+		<Compile Include="..\..\Zstandard\csharp\src\EntropyCommon.cs" Link="ZStd\EntropyCommon.cs" />
+		<Compile Include="..\..\Zstandard\csharp\src\FrameHeader.cs" Link="ZStd\FrameHeader.cs" />
+		<Compile Include="..\..\Zstandard\csharp\src\Fse.cs" Link="ZStd\Fse.cs" />
+		<Compile Include="..\..\Zstandard\csharp\src\FseDecompress.cs" Link="ZStd\FseDecompress.cs" />
+		<Compile Include="..\..\Zstandard\csharp\src\Huf.cs" Link="ZStd\Huf.cs" />
+		<Compile Include="..\..\Zstandard\csharp\src\HufDecompress.cs" Link="ZStd\HufDecompress.cs" />
+		<Compile Include="..\..\Zstandard\csharp\src\Mem.cs" Link="ZStd\Mem.cs" />
+		<Compile Include="..\..\Zstandard\csharp\src\XXH64_state_s.cs" Link="ZStd\XXH64_state_s.cs" />
+		<Compile Include="..\..\Zstandard\csharp\src\XxHash.cs" Link="ZStd\XxHash.cs" />
+		<Compile Include="..\..\Zstandard\csharp\src\ZStd.cs" Link="ZStd\ZStd.cs" />
+		<Compile Include="..\..\Zstandard\csharp\src\ZStdDecompress.cs" Link="ZStd\ZStdDecompress.cs" />
+		<Compile Include="..\..\Zstandard\csharp\src\ZStdErrors.cs" Link="ZStd\ZStdErrors.cs" />
+		<Compile Include="..\..\Zstandard\csharp\src\ZStdInternal.cs" Link="ZStd\ZStdInternal.cs" />
+		<Compile Include="..\..\Zstandard\csharp\src\ZSTD_format_e.cs" Link="ZStd\ZSTD_format_e.cs" />
+		<Compile Include="..\..\Zstandard\csharp\src\ZSTD_frameType_e.cs" Link="ZStd\ZSTD_frameType_e.cs" />
+		<Compile Include="..\NativeUtils\FileStream.cs" Link="NativeUtils\FileStream.cs" />
+		<Compile Include="..\NativeUtils\FileJanitor.cs" Link="NativeUtils\FileJanitor.cs" />
+		<Compile Include="..\NativeUtils\ResourceLoader.cs" Link="NativeUtils\ResourceLoader.cs" />
+		<Compile Include="..\NativeUtils\ResourceLoaderUtils.cs" Link="NativeUtils\ResourceLoaderUtils.cs" />
+		
+	</ItemGroup>
+	<ItemGroup>
+		<EmbeddedResource Include="..\..\native\bin\Release\Windows\32\FunctionsNative$(VersionDashed).dll.zst" Link="Windows\x32\FunctionsNative$(VersionDashed)_dll_zst" />
+		<EmbeddedResource Include="..\..\native\bin\Release\Windows\64\FunctionsNative$(VersionDashed).dll.zst" Link="Windows\x64\FunctionsNative$(VersionDashed)_dll_zst" />
+		<EmbeddedResource Include="..\..\native\bin\Release\Linux\32\libFunctionsNative$(VersionDashed)_so.zst" Link="Linux\x32\libFunctionsNative$(VersionDashed)_so_zst" />
+		<EmbeddedResource Include="..\..\native\bin\Release\Linux\64\libFunctionsNative$(VersionDashed)_so.zst" Link="Linux\x64\libFunctionsNative$(VersionDashed)_so_zst" />
+
+		<EmbeddedResource Include="..\..\native\bin\dummy\dummy10.txt.zst" Link="Windows\x32\dummy1_txt_zst" />
+		<EmbeddedResource Include="..\..\native\bin\dummy\dummy11.txt.zst" Link="Windows\x64\dummy1_txt_zst" />
+		<EmbeddedResource Include="..\..\native\bin\dummy\dummy12.txt.zst" Link="Linux\x32\dummy1_txt_zst" />
+		<EmbeddedResource Include="..\..\native\bin\dummy\dummy13.txt.zst" Link="Linux\x64\dummy1_txt_zst" />
+		<EmbeddedResource Include="..\..\native\bin\dummy\dummy20.txt.zst" Link="Windows\x32\dummy2_txt_zst" />
+		<EmbeddedResource Include="..\..\native\bin\dummy\dummy21.txt.zst" Link="Windows\x64\dummy2_txt_zst" />
+		<EmbeddedResource Include="..\..\native\bin\dummy\dummy22.txt.zst" Link="Linux\x32\dummy2_txt_zst" />
+		<EmbeddedResource Include="..\..\native\bin\dummy\dummy23.txt.zst" Link="Linux\x64\dummy2_txt_zst" />
+		<EmbeddedResource Include="..\..\native\bin\dummy\dummy30.txt.zst" Link="Windows\x32\dummy3_txt_zst" />
+		<EmbeddedResource Include="..\..\native\bin\dummy\dummy31.txt.zst" Link="Windows\x64\[order@1]dummy3_txt_zst" />
+		<EmbeddedResource Include="..\..\native\bin\dummy\dummy32.txt.zst" Link="Linux\x32\dummy3_txt_zst" />
+		<EmbeddedResource Include="..\..\native\bin\dummy\dummy33.txt.zst" Link="Linux\x64\dummy3_txt_zst" />
+		<EmbeddedResource Include="..\..\native\bin\dummy\dummy40.txt.zst" Link="Windows\x32\dummy4_txt_zst" />
+		<EmbeddedResource Include="..\..\native\bin\dummy\dummy41.txt.zst" Link="Windows\x64\dummy4_txt_zst" />
+		<EmbeddedResource Include="..\..\native\bin\dummy\dummy42.txt.zst" Link="Linux\x32\dummy4_txt_zst" />
+		<EmbeddedResource Include="..\..\native\bin\dummy\dummy43.txt.zst" Link="Linux\x64\dummy4_txt_zst" />
+	</ItemGroup>
+	<!--<Target Condition=" False And !$(TargetFramework.StartsWith('netcoreapp1')) And !$(TargetFramework.StartsWith('netstandard1')) " Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="echo $(TargetFramework)" />
+		<Exec Command="InjectModuleInitializer $(TargetPath)" />
+	</Target>-->
+</Project>

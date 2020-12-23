@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<GenerateProgramFile>false</GenerateProgramFile>
+		<TargetFrameworks>netcoreapp2.0;net40</TargetFrameworks>
+		<OutputType>Exe</OutputType>
+		<ApplicationIcon />
+		<StartupObject>FunctionsTests.Program</StartupObject>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.6.1" />
+		<PackageReference Include="NUnit" Version="3.10.1" />
+		<PackageReference Include="NUnit3TestAdapter" Version="3.10.0" />
+	</ItemGroup>
+	<ItemGroup>
+		<Compile Include="..\NativeUtils\FileStream.cs" Link="NativeUtils\FileStream.cs" />
+		<Compile Include="..\NativeUtils\FileJanitor.cs" Link="NativeUtils\FileJanitor.cs" />
+		<Compile Include="..\NativeUtils\ResourceLoaderUtils.cs" Link="NativeUtils\ResourceLoaderUtils.cs" />
+	</ItemGroup>
+</Project>
