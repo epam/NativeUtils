@@ -38,7 +38,7 @@ jobs:
           ./build.sh --script samples.cake --target BuildNativeLinuxLibs
       - uses: actions/upload-artifact@v2
         with:
-          name: build
+          name: build_linux
           path: |
             native/bin
             native-lib/bin
@@ -49,6 +49,9 @@ jobs:
     container: mono:6.6
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: build_linux
       - run: |
           apt-get update && apt-get install -y make zstd
           cd csharp
@@ -66,6 +69,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: compressed
       - uses: actions/setup-java@v1.4.3
         with:
           java-version: 1.7
@@ -74,16 +80,21 @@ jobs:
           ./gradlew run
       - uses: actions/upload-artifact@v2
         with:
-          name: test
+          name: test_java_linux
           path: |
             java/main/build/reports/tests
   test_dotnet_linux:
     if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: compress_native
     runs-on: ubuntu-latest
-    container: microsoft/dotnet:latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: compressed
+      - uses: actions/setup-dotnet@v1.7.2
+        with:
+          dotnet-version: 2.1.607
       - run: |
           cd csharp
           ./build.sh --target Run-Unit-Tests
@@ -117,6 +128,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - uses: actions/download-artifact@v2
+      with:
+        name: compressed
     - uses: actions/setup-java@v1.4.3
       with:
         java-version: 1.7
@@ -132,6 +146,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
+    - uses: actions/download-artifact@v2
+      with:
+        name: compressed
     - uses: actions/setup-dotnet@v1.7.2
       with:
         dotnet-version: 2.1.607
