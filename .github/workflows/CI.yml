@@ -42,9 +42,29 @@ jobs:
           path: |
             native/bin
             native-lib/bin
+  build_native_windows:
+    if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
+    needs: prepare
+    runs-on: [self-hosted, Windows]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: cake-build/cake-action@v1.2.0
+        with:
+          script-path: csharp/build.cake
+          target: BuildNativeWindows
+      - uses: cake-build/cake-action@v1.2.0
+        with:
+          script-path: csharp/samples.cake
+          target: BuildNativeWindowsLibs
+      - uses: actions/upload-artifact@v2
+        with:
+          name: build_windows
+          path: |
+            native/bin
+            native-lib/bin
   compress_native:
     if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
-    needs: build_native_linux
+    needs: [build_native_linux, build_native_windows]
     runs-on: ubuntu-latest
     container: mono:6.6
     steps:
@@ -52,6 +72,9 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build_linux
+      - uses: actions/download-artifact@v2
+        with:
+          name: build_windows
       - run: |
           apt-get update && apt-get install -y make zstd
           cd csharp
@@ -77,12 +100,37 @@ jobs:
       - uses: actions/setup-java@v1.4.3
         with:
           java-version: 1.8
-      - run: |
-          ./gradlew check
-          ./gradlew run
+      - uses: eskatos/gradle-command-action@v1.3.3
+        with:
+          arguments: check
+      - uses: eskatos/gradle-command-action@v1.3.3
+        with:
+          arguments: run
       - uses: actions/upload-artifact@v2
         with:
           name: test_java_linux
+          path: |
+            java/main/build/reports/tests
+  test_java8_windows:
+    if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
+    needs: compress_native
+    runs-on: [self-hosted, Windows]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+      - uses: actions/download-artifact@v2
+        with:
+          name: compressed
+      - uses: eskatos/gradle-command-action@v1.3.3
+        with:
+          arguments: check
+      - uses: eskatos/gradle-command-action@v1.3.3
+        with:
+          arguments: run
+      - uses: actions/upload-artifact@v2
+        with:
+          name: test_java_windows
           path: |
             java/main/build/reports/tests
   test_dotnet_linux:
@@ -107,11 +155,33 @@ jobs:
           name: test
           path: |
             csharp/Functions.Dll/bin
+  test_dotnet_windows:
+    if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
+    needs: compress_native
+    runs-on: [self-hosted, Windows]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+      - uses: actions/download-artifact@v2
+        with:
+          name: compressed
+      - uses: cake-build/cake-action@v1.2.0
+        with:
+          script-path: csharp/build.cake
+          target: Run-Unit-Tests
+      - uses: actions/upload-artifact@v2
+        with:
+          name: test
+          path: |
+            csharp/Functions.Dll/bin
   release:
     if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') && startsWith(github.ref, 'refs/heads/release-') }}
     needs: 
         - test_java8_linux
+        - test_java8_windows
         - test_dotnet_linux
+        - test_dotnet_windows
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
