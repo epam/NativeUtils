@@ -164,9 +164,10 @@ jobs:
       - uses: actions/setup-dotnet@v1.7.2
         with:
           dotnet-version: 2.1.607
-      - run: |
-          cd csharp
-          ./build.sh --target Run-Unit-Tests
+      - uses: cake-build/cake-action@v1.2.0
+        with:
+          script-path: csharp/build.cake
+          target: Run-Unit-Tests
       - uses: actions/upload-artifact@v2
         with:
           name: test
