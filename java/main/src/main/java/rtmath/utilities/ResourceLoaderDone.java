@@ -1,4 +1,4 @@
-package rtmath.utilities;
+package com.epam.deltix.utilities;
 
 /**
  * ResourceLoader instance without the builder interface.

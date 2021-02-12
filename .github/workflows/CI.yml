@@ -31,11 +31,19 @@ jobs:
     container: mono:6.6
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-dotnet@v1.7.2
+        with:
+          dotnet-version: 2.1.607
       - run: |
           apt-get update && apt-get install -y g++-multilib g++ make
-          cd csharp
-          ./build.sh --target BuildNativeLinux
-          ./build.sh --script samples.cake --target BuildNativeLinuxLibs
+      - uses: cake-build/cake-action@v1.2.0
+        with:
+          script-path: csharp/build.cake
+          target: BuildNativeLinux
+      - uses: cake-build/cake-action@v1.2.0
+        with:
+          script-path: csharp/samples.cake
+          target: BuildNativeLinuxLibs
       - uses: actions/upload-artifact@v2
         with:
           name: build_linux
@@ -75,11 +83,20 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: build_windows
+      - uses: actions/setup-dotnet@v1.7.2
+        with:
+          dotnet-version: 2.1.607
       - run: |
           apt-get update && apt-get install -y make zstd
           cd csharp
-          ./build.sh --target CompressNative
-          ./build.sh --script samples.cake --target CompressNativeLibs
+      - uses: cake-build/cake-action@v1.2.0
+        with:
+          script-path: csharp/build.cake
+          target: CompressNative
+      - uses: cake-build/cake-action@v1.2.0
+        with:
+          script-path: csharp/samples.cake
+          target: CompressNativeLibs
       - uses: actions/upload-artifact@v2
         with:
           name: compressed

@@ -20,7 +20,7 @@
 typedef int BOOL;
 typedef uint32_t DWORD;
 
-#define JAVA_NAMESPACE rtmath_utilities_FunctionsImport
+#define JAVA_NAMESPACE com_epam_deltix_utilities_FunctionsImport
 
 //
 // DLL Entry Point

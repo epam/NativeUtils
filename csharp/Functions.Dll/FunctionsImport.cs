@@ -1,6 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
-using RTMath.Utilities;
+using EPAM.Deltix.Utilities;
 
 
 namespace Functions
@@ -37,7 +37,7 @@ namespace Functions
 
 			var rl =
 				ResourceLoader.From("Functions.$(OS).x$(ARCH).*")
-					.To(".rtmath/Functions/DotNet/$(VERSION)/$(ARCH)").Load();
+					.To(".deltix/Functions/DotNet/$(VERSION)/$(ARCH)").Load();
 				//.To("c:/Users/ChuprinB/Dropbox/Projects/decimal.net/NativeUtils/csharp/Functions/DotNet/$(VERSION)/$(ARCH)").Load();
 				//.To("Functions/DotNet/Debug").Load();
 

@@ -17,7 +17,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace RTMath.Utilities.ResourceLoaderUtils
+namespace EPAM.Deltix.Utilities.ResourceLoaderUtils
 {
 	// Some AdHoc logging
 	internal static class Logger

@@ -1,4 +1,4 @@
-package rtmath.utilities;
+package com.epam.deltix.utilities;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static rtmath.utilities.ResourceLoaderUtils.closeLockedFileChannel;
-import static rtmath.utilities.ResourceLoaderUtils.openLockedFileChannel;
+import static com.epam.deltix.utilities.ResourceLoaderUtils.closeLockedFileChannel;
+import static com.epam.deltix.utilities.ResourceLoaderUtils.openLockedFileChannel;
 
 /**
  * Set of helper methods mostly for checking directory access locks and performing cleanup.

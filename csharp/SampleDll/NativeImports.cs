@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using RTMath.Utilities;
+using EPAM.Deltix.Utilities;
 
 
 namespace Sample
@@ -37,7 +37,7 @@ namespace Sample
 				// NOTE: Rootnamespace is defined as "Sample" in .csproj
 				// NOTE: if you use just numbered path 32/64, msbuild tools will fail to add resources at expected path
 				.From("Sample.$(OS).x$(ARCH).*")
-				.To(".rtmath/SampleDll/DotNet/$(VERSION)/$(ARCH)")
+				.To(".deltix/SampleDll/DotNet/$(VERSION)/$(ARCH)")
 					.Load();
 
 			if (Const.Verbose)

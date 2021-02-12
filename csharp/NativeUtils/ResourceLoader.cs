@@ -40,15 +40,15 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using RTMath.Utilities.ResourceLoaderUtils;
-using RTMath.ZStd;
+using EPAM.Deltix.Utilities.ResourceLoaderUtils;
+using EPAM.Deltix.ZStd;
 
 #if HAS_CONTRACTS
 using System.Diagnostics.Contracts;
 #endif
 
 
-namespace RTMath.Utilities
+namespace EPAM.Deltix.Utilities
 {
 	using static ResourceLoaderUtils.Logger;
 	using static ResourceLoaderUtils.Util;

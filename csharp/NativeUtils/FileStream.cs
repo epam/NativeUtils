@@ -9,7 +9,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace RTMath.Utilities.ResourceLoaderUtils
+namespace EPAM.Deltix.Utilities.ResourceLoaderUtils
 {
 	using static Logger;
 	/*

@@ -1,4 +1,4 @@
-package rtmath.utilities;
+package com.epam.deltix.utilities;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -13,7 +13,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import static rtmath.utilities.FileJanitor.*;
+import static com.epam.deltix.utilities.FileJanitor.*;
 
 public class TestUtils {
     final String tmp = System.getProperty("java.io.tmpdir");

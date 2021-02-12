@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 
-namespace RTMath.Utilities.ResourceLoaderUtils
+namespace EPAM.Deltix.Utilities.ResourceLoaderUtils
 {
 	public static class UtilHelper
 	{
@@ -16,7 +16,7 @@ namespace RTMath.Utilities.ResourceLoaderUtils
 
 namespace FunctionsTests
 {
-	using static RTMath.Utilities.ResourceLoaderUtils.UtilHelper;
+	using static EPAM.Deltix.Utilities.ResourceLoaderUtils.UtilHelper;
 	[TestFixture]
 	class UtilsTest
     {

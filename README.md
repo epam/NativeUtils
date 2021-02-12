@@ -68,7 +68,7 @@ sourceSets {
 This is an example of how to add the library as a dependency in Gradle
 ```
 dependencies {
-    implementation group: 'rtmath', name: 'rtmath-native-utils', version: '1.9.0'
+    implementation group: 'com.epam.deltix', name: 'deltix-native-utils', version: '1.9.0'
 }
 ```
 

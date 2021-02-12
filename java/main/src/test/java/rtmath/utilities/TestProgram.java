@@ -1,4 +1,4 @@
-package rtmath.utilities;
+package com.epam.deltix.utilities;
 
 // Test program for concurrency tests
 public class TestProgram {

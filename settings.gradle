@@ -1,4 +1,4 @@
 include ':java:main'
-project(':java:main').name = 'rtmath-native-utils'
+project(':java:main').name = 'deltix-native-utils'
 include ':java:sample'
-project(':java:sample').name = 'rtmath-native-utils-sample'
+project(':java:sample').name = 'deltix-native-utils-sample'

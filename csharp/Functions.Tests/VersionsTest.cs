@@ -4,7 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 using NUnit.Framework;
-using RTMath.Utilities;
+using EPAM.Deltix.Utilities;
 
 namespace FunctionsTests
 {
@@ -22,11 +22,11 @@ namespace FunctionsTests
 			{
 				for (int archBits = 32; archBits <= 64; archBits += archBits)
 				{
-					FileJanitor.TryCleanup(Path.Combine(basePath, $".rtmath/Functions/DotNet/{version}/{archBits}"), true,
+					FileJanitor.TryCleanup(Path.Combine(basePath, $".deltix/Functions/DotNet/{version}/{archBits}"), true,
 						".*");
-					FileJanitor.TryCleanup(Path.Combine(basePath, $".rtmath/Functions/DotNet/{version}"), true, ".*");
-					FileJanitor.TryCleanup(Path.Combine(basePath, ".rtmath/Functions/DotNet"), false, ".*");
-					FileJanitor.TryCleanup(Path.Combine(basePath, ".rtmath/Functions"), false, ".*");
+					FileJanitor.TryCleanup(Path.Combine(basePath, $".deltix/Functions/DotNet/{version}"), true, ".*");
+					FileJanitor.TryCleanup(Path.Combine(basePath, ".deltix/Functions/DotNet"), false, ".*");
+					FileJanitor.TryCleanup(Path.Combine(basePath, ".deltix/Functions"), false, ".*");
 				}
 			}
 		}
