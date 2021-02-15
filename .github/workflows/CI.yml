@@ -3,9 +3,13 @@ name: Release CI
 on:
   - workflow_dispatch
   - push
+
+env:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+
 jobs:
   prepare:
-    if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') && startsWith(github.ref, 'refs/heads/release-') }}
+    if: ${{ startsWith(github.ref, 'refs/heads/release-') && !contains(github.event.head_commit.message, '[skip-ci]') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,7 +29,10 @@ jobs:
           git commit -am "[skip-ci] Generate next snapshot version"
           git push origin HEAD
   build_native_linux:
-    if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
+    if: | 
+      ${{ ((startsWith(github.ref, 'refs/heads/release-') && needs.prepare == 'success') ||
+      (always() && !startsWith(github.ref, 'refs/heads/release-'))) &&
+      !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: prepare
     runs-on: ubuntu-latest
     container: mono:6.6
@@ -51,7 +58,10 @@ jobs:
             native/bin
             native-lib/bin
   build_native_windows:
-    if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
+    if: | 
+      ${{ ((startsWith(github.ref, 'refs/heads/release-') && needs.prepare == 'success') ||
+      (always() && !startsWith(github.ref, 'refs/heads/release-'))) &&
+      !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: prepare
     runs-on: [self-hosted, Windows]
     steps:
@@ -71,7 +81,11 @@ jobs:
             native/bin
             native-lib/bin
   compress_native:
-    if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
+    if: |
+      ${{ always() &&
+      needs.build_native_linux == 'success' &&
+      needs.build_native_windows == 'success' &&
+      !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: [build_native_linux, build_native_windows]
     runs-on: ubuntu-latest
     container: mono:6.6
@@ -104,7 +118,10 @@ jobs:
             native/bin
             native-lib/bin
   test_java8_linux:
-    if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
+    if: |
+      ${{ always() &&
+      !contains(github.event.head_commit.message, '[skip-ci]') &&
+      needs.compress_native == 'success' }}
     needs: compress_native
     runs-on: ubuntu-latest
     steps:
@@ -129,7 +146,10 @@ jobs:
           path: |
             java/main/build/reports/tests
   test_java8_windows:
-    if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
+    if: |
+      ${{ always() &&
+      needs.compress_native == 'success' &&
+      !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: compress_native
     runs-on: [self-hosted, Windows]
     steps:
@@ -151,7 +171,10 @@ jobs:
           path: |
             java/main/build/reports/tests
   test_dotnet_linux:
-    if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
+    if: |
+      ${{ always() &&
+      needs.compress_native == 'success' &&
+      !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: compress_native
     runs-on: ubuntu-latest
     steps:
@@ -174,7 +197,10 @@ jobs:
           path: |
             csharp/Functions.Dll/bin
   test_dotnet_windows:
-    if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
+    if: |
+      ${{ (always()) &&
+      needs.compress_native == 'success' &&
+      !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: compress_native
     runs-on: [self-hosted, Windows]
     steps:
@@ -194,7 +220,13 @@ jobs:
           path: |
             csharp/Functions.Dll/bin
   release:
-    if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') && startsWith(github.ref, 'refs/heads/release-') }}
+    if: |
+      ${{ startsWith(github.ref, 'refs/heads/release-') && always() &&
+      needs.test_java8_linux == 'success' &&
+      needs.test_java8_windows == 'success' &&
+      needs.test_dotnet_linux == 'success' &&
+      needs.test_dotnet_windows == 'success' &&
+      !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: 
         - test_java8_linux
         - test_java8_windows
@@ -215,7 +247,10 @@ jobs:
           git tag $versionRelease
           git push origin origin/workflow-$GITHUB_RUN_ID:$GITHUB_REF
   publish_java:
-    if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') && startsWith(github.ref, 'refs/heads/release-') }}
+    if: |
+      ${{ always() &&
+      startsWith(github.ref, 'refs/heads/release-') &&
+      !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: release
     runs-on: ubuntu-latest
     steps:
@@ -231,7 +266,10 @@ jobs:
         MAVEN_SNAPSHOT_URL: https://oss.sonatype.org/content/repositories/snapshots
         MAVEN_RELEASE_URL:  https://oss.sonatype.org/service/local/staging/deploy/maven2
   publish_csharp:
-    if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') && startsWith(github.ref, 'refs/heads/release-') }}
+    if: |
+      ${{ always() &&
+      startsWith(github.ref, 'refs/heads/release-') &&
+      !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: release
     runs-on: ubuntu-latest
     steps:
