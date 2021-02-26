@@ -1,4 +1,4 @@
-name: Release CI
+name: Build CI
 
 on:
   - workflow_dispatch
@@ -8,32 +8,8 @@ env:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
 
 jobs:
-  prepare:
-    if: ${{ startsWith(github.ref, 'refs/heads/release-') && !contains(github.event.head_commit.message, '[skip-ci]') }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Prepare
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git checkout -b workflow-$GITHUB_RUN_ID
-          versionSnapshot=`grep 'version=' gradle.properties | sed 's/version=\([^-]*\)/\1/'`
-          versionRelease=`echo $versionSnapshot | sed 's/\([^-]*\)-SNAPSHOT/\1/'`
-          versionSnapshotNext=`echo $versionSnapshot | perl -pe 's/^((\d+\.)*)(\d+)(.*)$/$1.($3+1).$4/e'`
-          echo "$versionSnapshot -> $versionRelease  -> $versionSnapshotNext"
-          sed -i "s/version=$versionSnapshot/version=$versionRelease/" gradle.properties
-          git commit -am "[skip-ci] Generate release version"
-          sed -i "s/version=$versionRelease/version=$versionSnapshotNext/" gradle.properties
-          git commit -am "[skip-ci] Generate next snapshot version"
-          git push origin HEAD
   build_native_linux:
-    if: | 
-      ${{ ((startsWith(github.ref, 'refs/heads/release-') && needs.prepare == 'success') ||
-      (always() && !startsWith(github.ref, 'refs/heads/release-'))) &&
-      !contains(github.event.head_commit.message, '[skip-ci]') }}
-    needs: prepare
+    if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
     runs-on: ubuntu-latest
     container: mono:6.6
     steps:
@@ -58,11 +34,7 @@ jobs:
             native/bin
             native-lib/bin
   build_native_windows:
-    if: | 
-      ${{ ((startsWith(github.ref, 'refs/heads/release-') && needs.prepare == 'success') ||
-      (always() && !startsWith(github.ref, 'refs/heads/release-'))) &&
-      !contains(github.event.head_commit.message, '[skip-ci]') }}
-    needs: prepare
+    if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
     runs-on: [self-hosted, Windows]
     steps:
       - uses: actions/checkout@v2
@@ -81,11 +53,7 @@ jobs:
             native/bin
             native-lib/bin
   compress_native:
-    if: |
-      ${{ always() &&
-      needs.build_native_linux == 'success' &&
-      needs.build_native_windows == 'success' &&
-      !contains(github.event.head_commit.message, '[skip-ci]') }}
+    if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: [build_native_linux, build_native_windows]
     runs-on: ubuntu-latest
     container: mono:6.6
@@ -118,10 +86,7 @@ jobs:
             native/bin
             native-lib/bin
   test_java8_linux:
-    if: |
-      ${{ always() &&
-      !contains(github.event.head_commit.message, '[skip-ci]') &&
-      needs.compress_native == 'success' }}
+    if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: compress_native
     runs-on: ubuntu-latest
     steps:
@@ -146,10 +111,7 @@ jobs:
           path: |
             java/main/build/reports/tests
   test_java8_windows:
-    if: |
-      ${{ always() &&
-      needs.compress_native == 'success' &&
-      !contains(github.event.head_commit.message, '[skip-ci]') }}
+    if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: compress_native
     runs-on: [self-hosted, Windows]
     steps:
@@ -172,9 +134,7 @@ jobs:
             java/main/build/reports/tests
   test_dotnet_linux:
     if: |
-      ${{ always() &&
-      needs.compress_native == 'success' &&
-      !contains(github.event.head_commit.message, '[skip-ci]') }}
+      ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: compress_native
     runs-on: ubuntu-latest
     steps:
@@ -198,9 +158,7 @@ jobs:
             csharp/Functions.Dll/bin
   test_dotnet_windows:
     if: |
-      ${{ (always()) &&
-      needs.compress_native == 'success' &&
-      !contains(github.event.head_commit.message, '[skip-ci]') }}
+      ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
     needs: compress_native
     runs-on: [self-hosted, Windows]
     steps:
@@ -219,86 +177,3 @@ jobs:
           name: test
           path: |
             csharp/Functions.Dll/bin
-  release:
-    if: |
-      ${{ startsWith(github.ref, 'refs/heads/release-') && always() &&
-      needs.test_java8_linux == 'success' &&
-      needs.test_java8_windows == 'success' &&
-      needs.test_dotnet_linux == 'success' &&
-      needs.test_dotnet_windows == 'success' &&
-      !contains(github.event.head_commit.message, '[skip-ci]') }}
-    needs: 
-        - test_java8_linux
-        - test_java8_windows
-        - test_dotnet_linux
-        - test_dotnet_windows
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Release
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git fetch
-          git checkout -b workflow-$GITHUB_RUN_ID origin/workflow-$GITHUB_RUN_ID~1
-          versionRelease=`grep 'version=' gradle.properties | sed 's/version=\([^-]*\)/\1/'`
-          echo $versionRelease
-          git tag $versionRelease
-          git push origin origin/workflow-$GITHUB_RUN_ID:$GITHUB_REF
-  publish_java:
-    if: |
-      ${{ always() &&
-      startsWith(github.ref, 'refs/heads/release-') &&
-      !contains(github.event.head_commit.message, '[skip-ci]') }}
-    needs: release
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - uses: actions/download-artifact@v2
-    - uses: actions/setup-java@v1.4.3
-      with:
-        java-version: 1.8
-    - run: ./gradlew publish
-      env:
-        MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-        MAVEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
-        MAVEN_SNAPSHOT_URL: https://oss.sonatype.org/content/repositories/snapshots
-        MAVEN_RELEASE_URL:  https://oss.sonatype.org/service/local/staging/deploy/maven2
-  publish_csharp:
-    if: |
-      ${{ always() &&
-      startsWith(github.ref, 'refs/heads/release-') &&
-      !contains(github.event.head_commit.message, '[skip-ci]') }}
-    needs: release
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - uses: actions/download-artifact@v2
-      with:
-        name: compressed
-    - uses: actions/setup-dotnet@v1.7.2
-      with:
-        dotnet-version: 2.1.607
-    - uses: cake-build/cake-action@v1.2.0
-      with:
-        target: Pack
-        script-path: csharp/build.cake
-        arguments: |
-          configuration: Release
-    - run: dotnet nuget push csharp/artifacts/Zstandard.*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s ${{ secrets.NUGET_URL }}
-  cleanup:
-    if: ${{ always() && !contains(github.event.head_commit.message, '[skip-ci]') }}
-    needs: 
-      - publish_java
-      - publish_csharp
-    runs-on: ubuntu-latest
-    continue-on-error: ${{ !startsWith(github.ref, 'refs/heads/release-') }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Cleanup
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git push origin --delete workflow-$GITHUB_RUN_ID || true
