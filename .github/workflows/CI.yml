@@ -8,63 +8,55 @@ env:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
 
 jobs:
-  build_native_linux:
-    if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
-    runs-on: ubuntu-latest
-    container: mono:6.6
+  build_native:
+    name: Build native (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            task: BuildNativeLinux
+          - os: windows-latest
+            task: BuildNativeWindows
     steps:
       - uses: actions/checkout@v2
+      - if: ${{ matrix.os == 'windows-latest' }}
+        uses: microsoft/setup-msbuild@v1.0.2
+      - if: ${{ matrix.os == 'windows-latest' }}
+        name: Install Windows 8.1 SDK
+        shell: powershell
+        run: |
+          Invoke-WebRequest -Method Get -Uri https://go.microsoft.com/fwlink/p/?LinkId=323507 -OutFile sdksetup.exe -UseBasicParsing
+          Start-Process -Wait sdksetup.exe -ArgumentList "/q", "/norestart", "/features", "OptionId.WindowsDesktopSoftwareDevelopmentKit", "OptionId.NetFxSoftwareDevelopmentKit"
+      - if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: sudo apt-get update && sudo apt-get install -y g++-multilib g++ make
       - uses: actions/setup-dotnet@v1.7.2
         with:
           dotnet-version: 2.1.607
-      - run: |
-          apt-get update && apt-get install -y g++-multilib g++ make
       - uses: cake-build/cake-action@v1.2.0
         with:
           script-path: csharp/build.cake
-          target: BuildNativeLinux
+          target: ${{ matrix.task }}
       - uses: cake-build/cake-action@v1.2.0
         with:
           script-path: csharp/samples.cake
-          target: BuildNativeLinuxLibs
+          target: ${{ matrix.task }}Libs
       - uses: actions/upload-artifact@v2
         with:
-          name: build_linux
-          path: |
-            native/bin
-            native-lib/bin
-  build_native_windows:
-    if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
-    runs-on: [self-hosted, Windows]
-    steps:
-      - uses: actions/checkout@v2
-      - uses: cake-build/cake-action@v1.2.0
-        with:
-          script-path: csharp/build.cake
-          target: BuildNativeWindows
-      - uses: cake-build/cake-action@v1.2.0
-        with:
-          script-path: csharp/samples.cake
-          target: BuildNativeWindowsLibs
-      - uses: actions/upload-artifact@v2
-        with:
-          name: build_windows
+          name: build_native
           path: |
             native/bin
             native-lib/bin
   compress_native:
-    if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
-    needs: [build_native_linux, build_native_windows]
+    needs: build_native
     runs-on: ubuntu-latest
     container: mono:6.6
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
-          name: build_linux
-      - uses: actions/download-artifact@v2
-        with:
-          name: build_windows
+          name: build_native
       - uses: actions/setup-dotnet@v1.7.2
         with:
           dotnet-version: 2.1.607
@@ -85,10 +77,14 @@ jobs:
           path: |
             native/bin
             native-lib/bin
-  test_java8_linux:
-    if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
+  test_java8:
+    name: Test Java 8 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ 'ubuntu-latest', 'windows-latest' ]
     needs: compress_native
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         with:
@@ -99,44 +95,21 @@ jobs:
       - uses: actions/setup-java@v1.4.3
         with:
           java-version: 1.8
-      - uses: eskatos/gradle-command-action@v1.3.3
-        with:
-          arguments: check
-      - uses: eskatos/gradle-command-action@v1.3.3
-        with:
-          arguments: run
+      - run: ./gradlew check
+      - run: ./gradlew run
       - uses: actions/upload-artifact@v2
         with:
-          name: test_java_linux
+          name: test_java_${{ matrix.os }}
           path: |
             java/main/build/reports/tests
-  test_java8_windows:
-    if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
+  test_dotnet:
+    name: Test Java 8 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ 'ubuntu-latest', 'windows-latest' ]
     needs: compress_native
-    runs-on: [self-hosted, Windows]
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: 'true'
-      - uses: actions/download-artifact@v2
-        with:
-          name: compressed
-      - uses: eskatos/gradle-command-action@v1.3.3
-        with:
-          arguments: check
-      - uses: eskatos/gradle-command-action@v1.3.3
-        with:
-          arguments: run
-      - uses: actions/upload-artifact@v2
-        with:
-          name: test_java_windows
-          path: |
-            java/main/build/reports/tests
-  test_dotnet_linux:
-    if: |
-      ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
-    needs: compress_native
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         with:
@@ -147,27 +120,6 @@ jobs:
       - uses: actions/setup-dotnet@v1.7.2
         with:
           dotnet-version: 2.1.607
-      - uses: cake-build/cake-action@v1.2.0
-        with:
-          script-path: csharp/build.cake
-          target: Run-Unit-Tests
-      - uses: actions/upload-artifact@v2
-        with:
-          name: test
-          path: |
-            csharp/Functions.Dll/bin
-  test_dotnet_windows:
-    if: |
-      ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
-    needs: compress_native
-    runs-on: [self-hosted, Windows]
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: 'true'
-      - uses: actions/download-artifact@v2
-        with:
-          name: compressed
       - uses: cake-build/cake-action@v1.2.0
         with:
           script-path: csharp/build.cake
