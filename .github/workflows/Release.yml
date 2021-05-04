@@ -1,0 +1,238 @@
+name: Release CI
+
+on:
+  push:
+    branches:
+      - release-*
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Prepare
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git checkout -b workflow-$GITHUB_RUN_ID
+          versionSnapshot=`grep 'version=' gradle.properties | sed 's/version=\([^-]*\)/\1/'`
+          versionRelease=`echo $versionSnapshot | sed 's/\([^-]*\)-SNAPSHOT/\1/'`
+          versionSnapshotNext=`echo $versionSnapshot | perl -pe 's/^((\d+\.)*)(\d+)(.*)$/$1.($3+1).$4/e'`
+          echo "$versionSnapshot -> $versionRelease  -> $versionSnapshotNext"
+          sed -i "s/version=$versionSnapshot/version=$versionRelease/" gradle.properties
+          git commit -am "[skip-ci] Generate release version"
+          sed -i "s/version=$versionRelease/version=$versionSnapshotNext/" gradle.properties
+          git commit -am "[skip-ci] Generate next snapshot version"
+          git push origin HEAD
+  build_native_linux:
+    needs: prepare
+    runs-on: ubuntu-latest
+    container: mono:6.6
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          apt-get update && apt-get install -y g++-multilib g++ make
+          cd csharp
+          ./build.sh --target BuildNativeLinux
+          ./build.sh --script samples.cake --target BuildNativeLinuxLibs
+      - uses: actions/upload-artifact@v2
+        with:
+          name: build_linux
+          path: |
+            native/bin
+            native-lib/bin
+  build_native_windows:
+    needs: prepare
+    runs-on: [self-hosted, Windows]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: cake-build/cake-action@v1.2.0
+        with:
+          script-path: csharp/build.cake
+          target: BuildNativeWindows
+      - uses: cake-build/cake-action@v1.2.0
+        with:
+          script-path: csharp/samples.cake
+          target: BuildNativeWindowsLibs
+      - uses: actions/upload-artifact@v2
+        with:
+          name: build_windows
+          path: |
+            native/bin
+            native-lib/bin
+  compress_native:
+    needs: [build_native_linux, build_native_windows]
+    runs-on: ubuntu-latest
+    container: mono:6.6
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: build_linux
+      - uses: actions/download-artifact@v2
+        with:
+          name: build_windows
+      - run: |
+          apt-get update && apt-get install -y make zstd
+          cd csharp
+          ./build.sh --target CompressNative
+          ./build.sh --script samples.cake --target CompressNativeLibs
+      - uses: actions/upload-artifact@v2
+        with:
+          name: compressed
+          path: |
+            native/bin
+            native-lib/bin
+  test_java8_linux:
+    needs: compress_native
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+      - uses: actions/download-artifact@v2
+        with:
+          name: compressed
+      - uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 1.8
+      - uses: eskatos/gradle-command-action@v1.3.3
+        with:
+          arguments: check
+      - uses: eskatos/gradle-command-action@v1.3.3
+        with:
+          arguments: run
+      - uses: actions/upload-artifact@v2
+        with:
+          name: test_java_linux
+          path: |
+            java/main/build/reports/tests
+  test_java8_windows:
+    needs: compress_native
+    runs-on: [self-hosted, Windows]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+      - uses: actions/download-artifact@v2
+        with:
+          name: compressed
+      - uses: eskatos/gradle-command-action@v1.3.3
+        with:
+          arguments: check
+      - uses: eskatos/gradle-command-action@v1.3.3
+        with:
+          arguments: run
+      - uses: actions/upload-artifact@v2
+        with:
+          name: test_java_windows
+          path: |
+            java/main/build/reports/tests
+  test_dotnet_linux:
+    needs: compress_native
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+      - uses: actions/download-artifact@v2
+        with:
+          name: compressed
+      - uses: actions/setup-dotnet@v1.7.2
+        with:
+          dotnet-version: 2.1.607
+      - run: |
+          cd csharp
+          ./build.sh --target Run-Unit-Tests
+      - uses: actions/upload-artifact@v2
+        with:
+          name: test
+          path: |
+            csharp/Functions.Dll/bin
+  test_dotnet_windows:
+    needs: compress_native
+    runs-on: [self-hosted, Windows]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+      - uses: actions/download-artifact@v2
+        with:
+          name: compressed
+      - uses: cake-build/cake-action@v1.2.0
+        with:
+          script-path: csharp/build.cake
+          target: Run-Unit-Tests
+      - uses: actions/upload-artifact@v2
+        with:
+          name: test
+          path: |
+            csharp/Functions.Dll/bin
+  release:
+    needs: 
+        - test_java8_linux
+        - test_java8_windows
+        - test_dotnet_linux
+        - test_dotnet_windows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Release
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git fetch
+          git checkout -b workflow-$GITHUB_RUN_ID origin/workflow-$GITHUB_RUN_ID~1
+          versionRelease=`grep 'version=' gradle.properties | sed 's/version=\([^-]*\)/\1/'`
+          echo $versionRelease
+          git tag $versionRelease
+          git push origin origin/workflow-$GITHUB_RUN_ID:$GITHUB_REF
+  publish_java:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/download-artifact@v2
+    - uses: actions/setup-java@v1.4.3
+      with:
+        java-version: 1.8
+    - run: ./gradlew publish
+      env:
+        MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+        MAVEN_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+        MAVEN_SNAPSHOT_URL: https://oss.sonatype.org/content/repositories/snapshots
+        MAVEN_RELEASE_URL:  https://oss.sonatype.org/service/local/staging/deploy/maven2
+  publish_csharp:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/download-artifact@v2
+      with:
+        name: compressed
+    - uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: 2.1.607
+    - uses: cake-build/cake-action@v1.2.0
+      with:
+        target: Pack
+        script-path: csharp/build.cake
+        arguments: |
+          configuration: Release
+    - run: dotnet nuget push csharp/artifacts/Zstandard.*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s ${{ secrets.NUGET_URL }}
+  cleanup:
+    if: ${{ always() }}
+    needs: 
+      - publish_java
+      - publish_csharp
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ !startsWith(github.ref, 'refs/heads/release-') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Cleanup
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git push origin --delete workflow-$GITHUB_RUN_ID || true
