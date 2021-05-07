@@ -1,6 +1,6 @@
 package deltix;
 
-import rtmath.utilities.*;
+import com.epam.deltix.utilities.*;
 
 import static deltix.NativeUtilsSample.Imports.avg;
 

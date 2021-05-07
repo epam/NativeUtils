@@ -1,4 +1,4 @@
-using RTMath.Utilities;
+using EPAM.Deltix.Utilities;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
@@ -19,7 +19,7 @@ namespace Sample
 			var rl = ResourceLoader
 				// If <RootNamespace> property is not defined, root namespace matches module name
 				.From("Sample1.$(OS).x$(ARCH).*")
-				.To("$(TEMP)/.rtmath/Sample/DotNet/$(VERSION)/$(ARCH)")
+				.To("$(TEMP)/.deltix/Sample/DotNet/$(VERSION)/$(ARCH)")
 				.Load();
 
 			Console.WriteLine("Loaded native lib at: {0}", rl.ActualDeploymentPath);

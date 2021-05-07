@@ -1,4 +1,4 @@
-package rtmath.utilities;
+package com.epam.deltix.utilities;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -13,13 +13,13 @@ import static java.lang.System.currentTimeMillis;
 import static java.lang.System.lineSeparator;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.junit.Assert.assertTrue;
-import static rtmath.utilities.ResourceLoaderUtils.log;
+import static com.epam.deltix.utilities.ResourceLoaderUtils.log;
 
 public class TestResourceLoader {
     private static final Object lock = new Object();
     static final String srcBase = "resources/$(OS)/$(ARCH)/";
     static final String src = srcBase + "*";
-    static final String dst = ".rtmath/SampleDll/Java/$(VERSION)/$(ARCH)";
+    static final String dst = ".deltix/SampleDll/Java/$(VERSION)/$(ARCH)";
     private static final int TEST_CLASSPATH = 2;
     private static final int TEST_FATJAR = 1;
     private static final int TEST_JARS = 0;
@@ -40,7 +40,7 @@ public class TestResourceLoader {
     }
 
     private static String deploymentPath(String testName) {
-        return "$(TEMP)/.rtmath/SampleDll/Java/$(VERSION)/" + testName + "/$(ARCH)/";
+        return "$(TEMP)/.deltix/SampleDll/Java/$(VERSION)/" + testName + "/$(ARCH)/";
     }
 
     @Test
@@ -246,7 +246,7 @@ public class TestResourceLoader {
                 cmd.add("-classpath");
                 cmd.add("build/classes/java/test" + separator + "build/resources/test"
                     + separator + "build/classes/java/main");
-                cmd.add("rtmath.utilities.TestProgram");
+                cmd.add("com.epam.deltix.utilities.TestProgram");
                 break;
         }
 

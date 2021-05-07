@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 
-namespace RTMath.Utilities
+namespace EPAM.Deltix.Utilities
 {
 	using static ResourceLoaderUtils.Util;
 	using FileStream = ResourceLoaderUtils.FileStream;

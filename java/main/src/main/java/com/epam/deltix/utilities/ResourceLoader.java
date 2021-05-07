@@ -1,6 +1,6 @@
-package rtmath.utilities;
+package com.epam.deltix.utilities;
 
-import rtmath.zstd.ZstdDecompressor;
+import com.epam.deltix.zstd.ZstdDecompressor;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -18,7 +18,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import static java.lang.System.*;
-import static rtmath.utilities.ResourceLoaderUtils.*;
+import static com.epam.deltix.utilities.ResourceLoaderUtils.*;
 
 
 /**

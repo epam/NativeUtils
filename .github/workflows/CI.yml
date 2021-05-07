@@ -1,0 +1,131 @@
+name: Build CI
+
+on:
+  - workflow_dispatch
+  - push
+
+env:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+
+jobs:
+  build_native:
+    name: Build native (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            task: BuildNativeLinux
+          - os: windows-latest
+            task: BuildNativeWindows
+    steps:
+      - uses: actions/checkout@v2
+      - if: ${{ matrix.os == 'windows-latest' }}
+        uses: microsoft/setup-msbuild@v1.0.2
+      - if: ${{ matrix.os == 'windows-latest' }}
+        name: Install Windows 8.1 SDK
+        shell: powershell
+        run: |
+          Invoke-WebRequest -Method Get -Uri https://go.microsoft.com/fwlink/p/?LinkId=323507 -OutFile sdksetup.exe -UseBasicParsing
+          Start-Process -Wait sdksetup.exe -ArgumentList "/q", "/norestart", "/features", "OptionId.WindowsDesktopSoftwareDevelopmentKit", "OptionId.NetFxSoftwareDevelopmentKit"
+      - if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: sudo apt-get update && sudo apt-get install -y g++-multilib g++ make
+      - uses: actions/setup-dotnet@v1.7.2
+        with:
+          dotnet-version: 2.1.607
+      - uses: cake-build/cake-action@v1.2.0
+        with:
+          script-path: csharp/build.cake
+          target: ${{ matrix.task }}
+      - uses: cake-build/cake-action@v1.2.0
+        with:
+          script-path: csharp/samples.cake
+          target: ${{ matrix.task }}Libs
+      - uses: actions/upload-artifact@v2
+        with:
+          name: build_native
+          path: |
+            native/bin
+            native-lib/bin
+  compress_native:
+    needs: build_native
+    runs-on: ubuntu-latest
+    container: mono:6.6
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: build_native
+      - uses: actions/setup-dotnet@v1.7.2
+        with:
+          dotnet-version: 2.1.607
+      - run: |
+          apt-get update && apt-get install -y make zstd
+          cd csharp
+      - uses: cake-build/cake-action@v1.2.0
+        with:
+          script-path: csharp/build.cake
+          target: CompressNative
+      - uses: cake-build/cake-action@v1.2.0
+        with:
+          script-path: csharp/samples.cake
+          target: CompressNativeLibs
+      - uses: actions/upload-artifact@v2
+        with:
+          name: compressed
+          path: |
+            native/bin
+            native-lib/bin
+  test_java8:
+    name: Test Java 8 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ 'ubuntu-latest', 'windows-latest' ]
+    needs: compress_native
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+      - uses: actions/download-artifact@v2
+        with:
+          name: compressed
+      - uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 1.8
+      - run: ./gradlew check
+      - run: ./gradlew run
+      - uses: actions/upload-artifact@v2
+        with:
+          name: test_java_${{ matrix.os }}
+          path: |
+            java/main/build/reports/tests
+  test_dotnet:
+    name: Test Java 8 (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ 'ubuntu-latest', 'windows-latest' ]
+    needs: compress_native
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'true'
+      - uses: actions/download-artifact@v2
+        with:
+          name: compressed
+      - uses: actions/setup-dotnet@v1.7.2
+        with:
+          dotnet-version: 2.1.607
+      - uses: cake-build/cake-action@v1.2.0
+        with:
+          script-path: csharp/build.cake
+          target: Run-Unit-Tests
+      - uses: actions/upload-artifact@v2
+        with:
+          name: test
+          path: |
+            csharp/Functions.Dll/bin

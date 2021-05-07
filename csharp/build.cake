@@ -16,14 +16,16 @@ var configuration = Argument("configuration", "Release");
 // Define directories.
 var csDir = ".";
 var gradleRootDir = "..";
-var nativeProjectDir = "../native-lib";
+var nativeProjectDir = "../native";
 
-var nativeProjectName = "Sample";
-var mainLibProjectName = $"SampleDll";
-var testProjectName = $"SampleTests";
+var baseProjectName = "Functions";
+var nativeProjectName = "FunctionsNative";
+var mainLibProjectName = $"{baseProjectName}.Dll";
+var testProjectName = $"{baseProjectName}.Tests";
+var testClientProjectName = $"{baseProjectName}.Client";
 
 var nativeBinDir = $"{nativeProjectDir}/bin";
-var slnPath = $"{csDir}/Samples.sln";
+var slnPath = $"{csDir}/ExamplesAndTests.sln";
 
 // Parse version from gradle.properties
 var gradleProperties = new Dictionary<String, String>();
@@ -72,34 +74,40 @@ Task("Restore-NuGet-Packages")
 });
 
 
-void BuildNativeTarget(int arch, bool isWindows)
+void BuildNativeTarget(string ver, string codeVer, int arch, bool isWindows)
 {
     arch = 32 == arch && isWindows ? 86 : arch;
-    string targetName = $"{nativeProjectName}";
+    string targetName = $"{nativeProjectName}{ver}";
     StartProcess(isWindows ? "MSBuild" : "make",
         new ProcessSettings { Arguments =
-            isWindows ? $"/p:TargetName={targetName} /p:Platform=x{arch} /p:Configuration={configuration} /t:Rebuild /m:4 {nativeProjectName}.sln"
-            : $"ProjectName={targetName} Architecture={arch} Configuration={configuration} Build",
+            isWindows ? $"/p:TargetName={targetName} /p:Platform=x{arch} /p:CodeVersion={codeVer} /p:Configuration={configuration} /t:Rebuild /m:4 {nativeProjectName}.sln"
+            : $"ProjectName={targetName} Architecture={arch} CodeVersion={codeVer} Configuration={configuration} Build",
         WorkingDirectory = nativeProjectDir });
  }
 
-void BuildNativeLib(bool isWindows)
+void BuildNative(string ver, string codeVer, bool isWindows)
 {
     DeleteDir($"{nativeProjectDir}/obj");
     foreach (var arch in new int[]{32, 64})
-        BuildNativeTarget(arch, isWindows);
+        BuildNativeTarget(ver, codeVer, arch, isWindows);
 }
 
-Task("BuildNativeLinuxLibs")
+void BuildNative(bool isWindows)
+{
+    BuildNative("1-0-0", "1", isWindows);
+    BuildNative("2-0-0", "2", isWindows);
+}
+
+Task("BuildNativeLinux")
     .Does(() =>
 {
-    BuildNativeLib(false);
+    BuildNative(false);
 });
 
-Task("BuildNativeWindowsLibs")
+Task("BuildNativeWindows")
     .Does(() =>
 {
-    BuildNativeLib(true);
+    BuildNative(true);
 });
 
 Task("GenerateDummyFiles")
@@ -115,38 +123,43 @@ Task("GenerateDummyFiles")
 });
 
 Task("CompressDummyFiles")
+    .IsDependentOn("GenerateDummyFiles")
     .Does(() =>
 {
     StartProcess("zstd", $"-19 --rm -r {nativeBinDir}/dummy");
 });
 
-Task("CompressNativeLibs")
+Task("CompressNative")
     .IsDependentOn("GenerateDummyFiles")
     .IsDependentOn("CompressDummyFiles")
     .Does(() =>
 {
     var path = $"{nativeBinDir}/Release";
-	DeleteFiles($"{path}/**/*.zst");
-	StartProcess("zstd", $"-19 -r {path}");
+    StartProcess("zstd", $"-19 --rm -r {path}");
     // Dotnet resources compilation workaround
+    foreach (var ver in new string[]{"1", "2"})
+        foreach (var arch in new int[]{32, 64})
+            MoveFile($"{path}/Linux/{arch}/lib{nativeProjectName}{ver}-0-0.so.zst",
+                     $"{path}/Linux/{arch}/lib{nativeProjectName}{ver}-0-0_so.zst");
 
-    foreach (var arch in new int[]{32, 64})
-        if (DirectoryExists($"{path}/Linux/{arch}"))
-            MoveFile($"{path}/Linux/{arch}/lib{nativeProjectName}.so.zst",
-                $"{path}/Linux/{arch}/lib{nativeProjectName}_so.zst");
 });
 
-Task("BuildAndCompressNativeWindowsLibs")
-    .IsDependentOn("BuildNativeWindowsLibs")
-    .IsDependentOn("CompressNativeLibs")
-    .Does(() => {});
-
-void BuildDll()
+void SetDllVersion(string ver)
 {
+    FileWriteText($"{prjDir(mainLibProjectName)}/Version.cs", "namespace Functions { internal class Version { internal const string versionDashed = \"" + ver + "\"; } }");
+}
+
+void BuildDllVersion(string version)
+{
+    var versionDashed = version.Replace('.', '-');
+    SetDllVersion(versionDashed);
+
     var buildSettings = new DotNetCoreBuildSettings {
         Configuration = configuration,
         NoRestore = true,
 		MSBuildSettings = new DotNetCoreMSBuildSettings()
+            .WithProperty("Version", version)
+            .WithProperty("VersionDashed", versionDashed)
     };
 
     if (!IsRunningOnWindows())
@@ -167,16 +180,22 @@ void BuildTests()
     if (!IsRunningOnWindows())
         buildSettings.Framework = "netcoreapp2.0";
 
-	DotNetCoreBuild(prjPath("Sample1"), buildSettings);
-	DotNetCoreBuild(prjPath("Sample2"), buildSettings);
-	//DotNetCoreBuild(prjPath(testProjectName), buildSettings);
+	DotNetCoreBuild(prjPath(testProjectName), buildSettings);
+    DotNetCoreBuild(prjPath(testClientProjectName), buildSettings);
 }
 
 Task("Build")
     .IsDependentOn("Restore-NuGet-Packages")
     .Does(() =>
 {
-    BuildDll();
+    foreach (var ver in new string[]{"1.0.0", "2.0.0"})
+    {
+        //echo($"Building {ver}");
+        DeleteDir(objDir(mainLibProjectName));
+        BuildDllVersion(ver);
+        //echo($"Built    {ver}");
+    }
+
     BuildTests();
 });
 
@@ -187,24 +206,21 @@ Task("Run-Unit-Tests")
 	var settings = new DotNetCoreTestSettings()
 	{
         Configuration = configuration
-        //, DiagnosticOutput = true
-        //, DiagnosticFile = "stdout.txt"
+        , DiagnosticOutput = true
+        , DiagnosticFile = "stdout.txt"
 	};
 
     if (!IsRunningOnWindows())
         settings.Framework = "netcoreapp2.0";
 
-    var testProjectName = "Sample2";
-
-    Information("Running test project ''" + testProjectName + "' with .NET Core");
+    Information("Running tests with .NET Core");
     DotNetCoreTest(prjPath(testProjectName), settings);
 
 	// Prevent from running on platforms without .NET 4.0
-
 	var glob = $"{binDir(testProjectName)}/net40/{testProjectName}.exe";
     if (IsRunningOnWindows() && GetFiles(glob).Count > 0)
     {
-        Information("Running test project ''" + testProjectName + "' with NUnit & .NET Framework 4.0");
+        Information("Running tests with NUnit & .NET Framework 4.0");
         NUnit3(glob);
     }
 });
@@ -214,6 +230,7 @@ Task("Run-Unit-Tests")
 //////////////////////////////////////////////////////////////////////
 
 Task("Default")
+    //.IsDependentOn("Build");
     .IsDependentOn("Run-Unit-Tests");
 
 //////////////////////////////////////////////////////////////////////

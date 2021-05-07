@@ -25,6 +25,6 @@ repositories {
 }
 
 dependencies {
-    implementation project(':java:rtmath-native-utils')
+    implementation project(':java:deltix-native-utils')
 }
 

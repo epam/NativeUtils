@@ -1,4 +1,4 @@
-package rtmath.utilities;
+package com.epam.deltix.utilities;
 
 /**
  * Configuration Builder interface for {@code ResourceLoader}.

@@ -68,7 +68,7 @@ task testJar(type: Jar, dependsOn: [jar, testClasses, processTestResources]) {
     manifest {
         attributes 'Implementation-Title': 'Native Utils Tests',
             'Implementation-Version': version,
-            'Main-Class': 'rtmath.utilities.TestProgram',
+            'Main-Class': 'com.epam.deltix.utilities.TestProgram',
             'Class-Path': jar.archiveName
     }
 
@@ -82,7 +82,7 @@ task testFatJar(type: Jar, dependsOn: [classes, testClasses, processTestResource
     manifest {
         attributes 'Implementation-Title': 'Native Utils Tests',
             'Implementation-Version': version,
-            'Main-Class': 'rtmath.utilities.TestProgram'
+            'Main-Class': 'com.epam.deltix.utilities.TestProgram'
     }
 
     from sourceSets.test.output, sourceSets.main.output

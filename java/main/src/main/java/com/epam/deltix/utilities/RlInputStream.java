@@ -1,4 +1,4 @@
-package rtmath.utilities;
+package com.epam.deltix.utilities;
 
 import java.io.Closeable;
 import java.io.IOException;
