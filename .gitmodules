@@ -1,3 +1,4 @@
 [submodule "Zstandard"]
 	path = Zstandard
-	url = https://github.com/DeltixInc/Zstandard
+	url = https://github.com/epam/Zstandard
+	branch = main
